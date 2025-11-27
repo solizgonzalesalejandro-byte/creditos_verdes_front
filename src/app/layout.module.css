@@ -1,0 +1,15 @@
+/* src/app/layout.module.css */
+.appShell {
+  display: grid;
+  grid-template-columns: auto 1fr; /* la primera columna colapsa si no existe sidebar */
+  min-height: 100vh;
+  gap: 24px;
+}
+
+.contenido {
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px;
+  background: #f6fbf6;
+}
