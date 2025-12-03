@@ -405,3 +405,17 @@ export async function crearPublicacionSimple(
 
   return resp.json();
 }
+
+// GET /perfil/me?idusuario=...
+export async function getPerfilConsolidado(idusuario: number) {
+  if (!idusuario) throw new Error("idusuario es requerido");
+
+  const url = `${BASE_URL}/perfil/me?idusuario=${encodeURIComponent(String(idusuario))}`;
+
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  return resp.json(); // -> { success: true, data: { ...perfil } }
+}
