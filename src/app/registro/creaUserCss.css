@@ -1,0 +1,186 @@
+/* src/app/register/creaUserCss.module.css */
+:root {
+    --primary-color: #0e6120;
+    --secondary-color: #0a8b0a;
+    --background-light: #f4f4f9;
+    --background-dark: #333333;
+    --text-color: #333333;
+    --error-color: #e74c3c;
+    --shadow-light: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Nota: no tocamos body aquí porque es CSS module y scoping evita contaminación,
+   pero las reglas globales como * siguen aplicando; esto está bien y es esperado. */
+
+.registration-container {
+    margin: 40px auto;
+justify-content: center;
+align-items: stretch;
+
+    display: flex;
+    width: 900px;
+    max-width: 90%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-light);
+    background-color: white;
+}
+
+/* Panel de introducción (Incentivo, Lado Izquierdo) */
+.intro-panel {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 40px;
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.intro-panel h1 {
+    font-size: 2.2em;
+    margin-bottom: 10px;
+    border-bottom: 2px solid white;
+    padding-bottom: 10px;
+}
+
+.intro-panel p {
+    margin-top: 15px;
+    line-height: 1.5;
+}
+
+.incentive {
+    font-size: 1.1em;
+    font-weight: bold;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+
+/* Panel del Formulario (Lado Derecho) */
+.form-panel {
+    padding: 40px;
+    width: 60%;
+}
+
+.form-panel h2 {
+    color: var(--primary-color);
+    margin-bottom: 25px;
+    text-align: center;
+    font-size: 1.8em;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--secondary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.2);
+}
+
+/* Botón de Registro */
+.register-btn {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    margin-top: 10px;
+}
+
+.register-btn:hover {
+    background-color: #16a085;
+    transform: translateY(-1px);
+}
+
+/* Enlace a Iniciar Sesión */
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.95em;
+}
+
+.login-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* Media Query para hacerlo responsivo en dispositivos pequeños */
+@media (max-width: 768px) {
+    .registration-container {
+        flex-direction: column;
+        width: 100%;
+        max-width: none;
+        margin: 20px;
+    }
+
+    .intro-panel,
+    .form-panel {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .intro-panel h1 {
+        font-size: 1.8em;
+    }
+}

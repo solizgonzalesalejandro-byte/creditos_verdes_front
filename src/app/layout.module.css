@@ -1,9 +1,9 @@
 /* src/app/layout.module.css */
 .appShell {
-  display: grid;
-  grid-template-columns: auto 1fr; /* la primera columna colapsa si no existe sidebar */
+  /* contenedor neutro: no grid de 2 columnas */
+  display: block;
   min-height: 100vh;
-  gap: 24px;
+  background: transparent;
 }
 
 .contenido {

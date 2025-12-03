@@ -1,0 +1,135 @@
+
+    /* -------------------------
+       Estilos: Crear Publicación
+       Paleta ecológica
+       ------------------------- */
+    :root{
+      --bg: #f1fbf2;
+      --panel: #ffffff;
+      --green-dark: #2f6d24; /* texto/íconos */
+      --green: #5e955e;      /* principal */
+      --green-soft: #c8e6a7; /* acento */
+      --muted: #577b4c;
+      --radius: 12px;
+      --shadow: 0 8px 20px rgba(31,48,27,0.08);
+    }
+
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; margin:0; font-family: "Segoe UI", Roboto, Arial, sans-serif; background: radial-gradient(800px 400px at 10% 0%, #eaf7ea 0%, var(--bg) 45%); color:var(--green-dark); }
+
+    /* Central container */
+    .container{
+      max-width: 900px;
+      width: 94%;
+      margin: 36px auto;
+      background: linear-gradient(180deg, #fbfff9 0%, var(--panel) 100%);
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(76,138,54,0.06);
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    header h1{
+      margin:0 0 6px 0;
+      font-size: 1.6rem;
+      color: var(--green-dark);
+    }
+    header p{ margin:0 0 18px 0; color:var(--muted); font-size:0.95rem; }
+
+    /* Form */
+    form{ width:100%; }
+    .form-group{ margin-bottom: 14px; }
+    .form-group label{ display:block; margin-bottom:6px; font-weight:700; color: #23401f; }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea{
+      width:100%;
+      padding:10px 12px;
+      border:1px solid #d8e9d4;
+      border-radius:8px;
+      font-size:0.98rem;
+      background: #fbfff9;
+      transition: box-shadow .18s, border-color .18s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus{
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 4px rgba(94,149,94,0.12);
+    }
+    .form-row{ display:flex; gap:12px; }
+    .form-row .col{ flex:1; }
+
+    .note{ font-size:0.9rem; color:var(--muted); margin-top:6px; }
+
+    /* Botón */
+    .btn-publish{
+      display:inline-block;
+      width:100%;
+      padding:12px 16px;
+      background: linear-gradient(180deg, var(--green) 0%, #4c8a36 100%);
+      color:white;
+      border:none;
+      border-radius:10px;
+      font-weight:800;
+      letter-spacing:.6px;
+      cursor:pointer;
+      font-size:1rem;
+      margin-top:8px;
+      transition: transform .06s ease, box-shadow .12s;
+    }
+    .btn-publish:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(76,138,54,0.12); }
+    .btn-publish:active{ transform: translateY(0); }
+
+    /* Right column: preview + ayuda */
+    .aside{
+      background: linear-gradient(180deg, rgba(159,208,139,0.08), rgba(220,237,206,0.02));
+      border-radius:12px;
+      padding:14px;
+      border:1px solid rgba(76,138,54,0.06);
+    }
+    .preview-card{
+      background: white;
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow: 0 6px 16px rgba(27,46,22,0.06);
+      border:1px solid rgba(0,0,0,0.03);
+    }
+    .preview-image{
+      width:100%;
+      height:180px;
+      object-fit:cover;
+      display:block;
+      background:#eef7ee;
+    }
+    .preview-body{ padding:12px; }
+    .preview-title{ margin:0; font-size:1.05rem; color:var(--green-dark); }
+    .preview-meta{ margin-top:6px; color:var(--muted); font-size:0.9rem; }
+    .preview-desc{ margin-top:10px; color:#23401f; font-size:0.95rem; min-height:40px; }
+
+    /* Mensaje de éxito */
+    .msg{
+      display:none;
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:8px;
+      background: linear-gradient(90deg, rgba(95,173,85,0.12), rgba(196,237,191,0.12));
+      border: 1px solid rgba(76,138,54,0.08);
+      color: var(--green-dark);
+      font-weight:700;
+    }
+
+    /* Pequeños ajustes responsive */
+    @media (max-width: 920px){
+      .container{ grid-template-columns: 1fr; padding:18px; }
+      .preview-image{ height:160px; }
+    }
+    @media (max-width:420px){
+      .preview-image{ height:140px; }
+    }

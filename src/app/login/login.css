@@ -1,0 +1,149 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: sans-serif;
+}
+
+body {
+  background-color: #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  display: flex;
+  width: 90%;
+  max-width: 900px;
+  background-color: rgb(208, 224, 193);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.image-side {
+  flex: 1;
+  background: url("/image/nature_13640986.png") center/cover no-repeat;
+  min-height: 400px;
+}
+
+.form-side {
+  flex: 1;
+  padding: 40px 30px;
+  background-color: rgba(247, 240, 240, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.fa-circle-user {
+  font-size: 60px;
+  color: #0e4561;
+}
+
+.logo h1 {
+  color: #333;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.logo h2 {
+  color: #666;
+  font-size: 18px;
+  font-weight: normal;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+  background-color: #fff;
+}
+
+.loginboton,
+.CreaUser {
+  width: 100%;
+  padding: 12px;
+  background-color: #0e6120;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+}
+
+.loginboton:hover,
+.CreaUser:hover {
+  background-color: #064e33;
+}
+
+.mensaje {
+  text-align: center;
+  color: #333;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #333;
+  background-color: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.role-checkbox:hover {
+  background-color: #dbe6d0;
+}
+
+.role-checkbox input[type="checkbox"] {
+  accent-color: #0e6120;
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .image-side {
+    height: 200px;
+  }
+}

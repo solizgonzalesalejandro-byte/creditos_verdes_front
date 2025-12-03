@@ -1,4 +1,4 @@
-/* src/app/globals.css - estilos globales, variables y reset */
+/* src/app/globals.css */
 :root{
   --bg:#eef6f0;
   --panel:#ffffff;
@@ -14,15 +14,10 @@
 
 /* reset y base */
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body,#__next{height:100%}
 body{
   margin:0;
   font-family:system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   color:var(--ink);
   background:radial-gradient(1200px 700px at 15% -5%, #d6ebdc 0%, var(--bg) 50%);
-}
-
-/* responsive helpers (si alguna regla global está aquí y la necesitas) */
-@media (max-width: 900px){
-  body{ background: var(--bg); }
 }
