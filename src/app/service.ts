@@ -371,3 +371,37 @@ export async function listViews(schema: string = "mydb") {
   const resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
   return resp.json(); // { success: true, data: rows, count }
 }
+
+// POST /publicacion
+export async function crearPublicacionSimple(
+  usuarioId: number,
+  titulo: string,
+  descripcion?: string | null,
+  valorCredito?: number | null,
+  estadoPublica?: string | null,
+  foto?: string | null,
+  promocionId?: number | null,
+  reporteId?: number | null
+) {
+  if (!usuarioId) throw new Error("usuarioId es requerido");
+  if (!titulo || !String(titulo).trim()) throw new Error("titulo es requerido");
+
+  const body = {
+    usuarioId,
+    titulo,
+    descripcion: descripcion ?? null,
+    valorCredito: valorCredito ?? null,
+    estadoPublica: estadoPublica ?? "activa",
+    foto: foto ?? null,
+    promocionId: promocionId ?? null,
+    reporteId: reporteId ?? null,
+  };
+
+  const resp = await fetch(`${BASE_URL}/publicacion`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  return resp.json();
+}
