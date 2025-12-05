@@ -488,3 +488,135 @@ export async function confirmarCompraCreditosSP(
   });
   return resp.json();
 }
+
+export async function obtenerUsuarioSP(idusuario: string) {
+  if (!idusuario || Number.isNaN(Number(idusuario))) {
+    throw new Error("idusuario es requerido y debe ser numérico");
+  }
+
+  const resp = await fetch(`${BASE_URL}/api/usuario/${idusuario}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    // Manejo de errores más claro
+    throw new Error(data?.message ?? "Error obteniendo usuario");
+  }
+
+  return data; // { success: true, data: {...usuario} }
+}
+
+export async function compraSuscripcionSP(usuarioId: number, meses: number, monto: number) {
+  if (!usuarioId || Number.isNaN(Number(usuarioId))) {
+    throw new Error("usuarioId es requerido y debe ser numérico");
+  }
+  if (!meses || Number.isNaN(Number(meses))) {
+    throw new Error("meses es requerido y debe ser numérico");
+  }
+  if (!monto || Number.isNaN(Number(monto))) {
+    throw new Error("monto es requerido y debe ser numérico");
+  }
+
+  const body = { usuarioId, meses, monto };
+
+  const resp = await fetch(`${BASE_URL}/api/compra-suscripcion`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error procesando compra de suscripción");
+  }
+
+  return data; // { success: true, data: ... }
+}
+/* ===========================================================
+   1) IMPACTO SEMANAL — GET /impacto/semana
+=========================================================== */
+export async function obtenerImpactoSemanaSP() {
+  const resp = await fetch(`${BASE_URL}/impacto/semana`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error obteniendo impacto por semana");
+  }
+
+  return data; 
+  // { success: true, data: [...], count: number }
+}
+
+/* ===========================================================
+   2) RANKING USUARIOS — GET /ranking/usuarios
+=========================================================== */
+export async function obtenerRankingUsuariosSP() {
+  const resp = await fetch(`${BASE_URL}/ranking/usuarios`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error obteniendo ranking de usuarios");
+  }
+
+  return data;
+}
+
+/* ===========================================================
+   3) TOP 10 RANKING — GET /ranking/top10
+=========================================================== */
+export async function obtenerTop10RankingSP() {
+  const resp = await fetch(`${BASE_URL}/ranking/top10`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error obteniendo top 10 ranking");
+  }
+
+  return data;
+}
+
+/* ===========================================================
+   4) LISTAR VISTAS — GET /views?schema=mydb
+=========================================================== */
+export async function obtenerVistasSP(schema: string = "mydb") {
+  if (!schema) throw new Error("schema es requerido");
+
+  const resp = await fetch(`${BASE_URL}/views?schema=${encodeURIComponent(schema)}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  const data = await resp.json();
+
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error listando vistas");
+  }
+
+  return data;
+}
+
+export async function getPlataformaIngresos() {
+  const url = `${BASE_URL}/plataforma/ingresos`;
+  const resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+  const data = await resp.json();
+  if (!resp.ok) {
+    throw new Error(data?.message ?? "Error obteniendo ingresos de la plataforma");
+  }
+  return data; // { success: true, data: rows, count }
+}

@@ -3,6 +3,8 @@ import "./comprar_puntosCss.css";
 import {
   ejecutarCompraCreditosSP,
   confirmarCompraCreditosSP,
+  obtenerUsuarioSP,
+  compraSuscripcionSP
 } from "../service"; // AJUSTA LA RUTA SEGÚN TU PROYECTO
 
 /* ----- Tipos ----- */
@@ -30,7 +32,11 @@ type Wallet = {
 };
 
 type Usuario = {
-  nombreUser: string;
+  apellido: string;
+  billetera_id: number;
+  idusuario: number;
+  nombre: string;
+  billetera: number;
   suscripcionActiva: boolean;
 };
 
@@ -61,8 +67,11 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
     },
   ]);
 
-  const [wallet, setWallet] = useState<Wallet>({ saldoActual: 200.0 });
-  const [usuario, setUsuario] = useState<Usuario>({ nombreUser: "demo_user", suscripcionActiva: false });
+  // wallet local (valor mostrado)
+  const [wallet, setWallet] = useState<number>(0);
+
+  // usuario puede ser undefined si no hay sesión
+  const [usuario, setUsuario] = useState<Usuario | undefined>(undefined);
 
   // UI state
   const [processingId, setProcessingId] = useState<number | null>(null);
@@ -70,16 +79,66 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
 
   // Placeholder: en producción carga desde API
   useEffect(() => {
-    // Ejemplo:
-    // (async function load(){ const k = await fetch('/api/publicaciones').then(r=>r.json()); setPublicaciones(k); })()
-  }, []);
+  const raw = sessionStorage.getItem("usuario");
+  if (!raw) return;
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    console.warn("sessionStorage: usuario mal formado:", e);
+    return;
+  }
+
+  (async () => {
+    try {
+      // obtenerUsuarioSP devuelve { success, data } según la implementación anterior
+      console.log("Cargando usuario desde API para idusuario:", parsed);
+      const resp = await obtenerUsuarioSP(parsed.idusuario);
+      console.log("obtenerUsuarioSP respuesta:", resp);
+      // soportar dos formatos: { success, data } o directamente data
+      const usuarioData = resp?.data ?? resp;
+
+      // si la API devolvió un array en data, tomar el primer elemento
+      const first = Array.isArray(usuarioData) ? usuarioData[0] : usuarioData;
+
+      if (!first || typeof first.idusuario !== "number") {
+        console.warn("obtenerUsuarioSP devolvió formato inesperado:", resp);
+        return;
+      }
+
+      const u = {
+        apellido: String(first.apellido ?? ""),
+        billetera_id: Number(first.billetera_id ?? 0),
+        idusuario: Number(first.idusuario),
+        nombre: String(first.nombre ?? "Usuario"),
+        billetera: Number(first.billetera ?? 0),
+        suscripcionActiva: Boolean(first.suscripcionActiva == 1 || first.suscripcionActiva === true),
+      };
+
+      setUsuario(u);
+      setWallet(Number(u.billetera ?? 0));
+
+      // opcional: actualizar sessionStorage con datos frescos
+      try {
+        sessionStorage.setItem("usuario", JSON.stringify(u));
+      } catch (err) {
+        console.warn("No se pudo actualizar sessionStorage:", err);
+      }
+    } catch (err: any) {
+      console.warn("Error cargando usuario desde API:", err?.message ?? err);
+      // keep previous session info (no cambios)
+    }
+  })();
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   /* ----- Helpers ----- */
   function calcularImpacto(pub: Publicacion) {
     let co2 = 0;
     let en = 0;
     let ag = 0;
-    if (!pub.categorias) return { total: 0 };
+    if (!pub.categorias) return { total: 0, co2: 0, en: 0, ag: 0 };
     for (const c of pub.categorias) {
       const u = Number(c.cantidadUnidad ?? 0);
       co2 += u * (Number(c.tabla?.factorCO2 ?? 0));
@@ -90,7 +149,6 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
   }
 
   function publicacionesOrdenadas(): Publicacion[] {
-    if (!usuario.suscripcionActiva) return publicaciones;
     // lógica demo: preferir impares
     const preferidas = publicaciones.filter((p) => p.idpublicacion % 2 === 1);
     const resto = publicaciones.filter((p) => p.idpublicacion % 2 === 0);
@@ -98,72 +156,69 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
   }
 
   /* ----- Acciones ----- */
-async function iniciarCompraMarketplace(pub: Publicacion) {
-  setProcessingId(pub.idpublicacion);
-
-  try {
-    const base = Number(pub.valorCredito ?? 0);
-    const descuento = usuario.suscripcionActiva ? 0.1 : 0;
-    const montoFinal = Number((base * (1 - descuento)).toFixed(2));
-
-    const usuarioIdReal = 1; // ← reemplazar con el id real del usuario autenticado
-
-    // 1️⃣ Crear la compra (llama sp_compra_creditos)
-    const respCrear = await ejecutarCompraCreditosSP(
-      usuarioIdReal,
-      montoFinal,
-      1, // créditos comprados (define tu propia regla)
-      "pago_marketplace"
-    );
-
-    if (!respCrear?.success) {
-      throw new Error(respCrear?.message || "Error creando compra.");
+  async function iniciarCompraMarketplace(pub: Publicacion) {
+    // protecciones: si no hay usuario o billetera_id, evitar continuar
+    if (!usuario) {
+      window.alert("Debes iniciar sesión antes de comprar.");
+      return;
+    }
+    if (!usuario.billetera_id) {
+      window.alert("Usuario no tiene billetera registrada.");
+      return;
     }
 
-    const idcomp = respCrear?.data?.idcompra;
+    setProcessingId(pub.idpublicacion);
 
-    if (!idcomp) {
-      throw new Error("El SP no devolvió idcompra.");
-    }
+    try {
+      const base = Number(pub.valorCredito ?? 0);
+      const montoFinal = base;
 
-    // 2️⃣ Abrir checkout simulado
-    const fakeUrl = `https://market.example/pago?id=${idcomp}&m=${montoFinal}`;
-    const popup = window.open(fakeUrl, "_blank", "noopener,noreferrer");
+      // 1️⃣ Crear la compra (llama sp_compra_creditos)
+      const respCrear = await ejecutarCompraCreditosSP(
+        usuario.idusuario,
+        montoFinal,
+        pub.valorCredito // créditos comprados (define tu propia regla)
+      );
 
-    // 3️⃣ Simular confirmación del pago (reemplazar luego por webhook real)
-    setTimeout(async () => {
-      try {
-        // 4️⃣ Confirmar compra en el backend (sp_confirmar_compra_creditos)
-        const respConfirm = await confirmarCompraCreditosSP(idcomp, montoFinal, "pago_marketplace");
-
-        if (!respConfirm?.success) {
-          throw new Error(respConfirm?.message || "Error confirmando compra.");
-        }
-
-        // 5️⃣ Actualizar billetera local
-        setWallet((w) => ({
-          ...w,
-          saldoActual: Number((w.saldoActual + montoFinal).toFixed(2)),
-        }));
-
-        window.alert("Compra confirmada y acreditada.");
-
-      } catch (err: any) {
-        console.error("Error confirmando:", err);
-        window.alert("Error confirmando la compra");
-      } finally {
-        setProcessingId(null);
-        try { if (popup && !popup.closed) popup.close(); } catch {}
+      if (!respCrear?.success) {
+        throw new Error(respCrear?.message || "Error creando compra.");
       }
-    }, 1500);
 
-  } catch (err: any) {
-    console.error("Error iniciarCompraMarketplace:", err);
-    setProcessingId(null);
-    window.alert("No se pudo iniciar la compra");
+      const idcomp = respCrear?.data?.idcompra;
+
+      if (!idcomp) {
+        throw new Error("El SP no devolvió idcompra.");
+      }
+
+      // 3️⃣ Simular confirmación del pago (reemplazar luego por webhook real)
+      setTimeout(async () => {
+        try {
+          // 4️⃣ Confirmar compra en el backend (sp_confirmar_compra_creditos)
+          const respConfirm = await confirmarCompraCreditosSP(idcomp, montoFinal, "pago_marketplace");
+
+          if (!respConfirm?.success) {
+            throw new Error(respConfirm?.message || "Error confirmando compra.");
+          }
+
+          // 5️⃣ Actualizar billetera local de forma inmutable
+          const nuevaBilletera = (usuario.billetera ?? 0) + montoFinal;
+          setWallet(nuevaBilletera);
+          setUsuario((prev) => (prev ? { ...prev, billetera: nuevaBilletera } : prev));
+
+          window.alert("Compra confirmada y acreditada.");
+        } catch (err: any) {
+          console.error("Error confirmando:", err);
+          window.alert("Error confirmando la compra");
+        } finally {
+          setProcessingId(null);
+        }
+      }, 1500);
+    } catch (err: any) {
+      console.error("Error iniciarCompraMarketplace:", err);
+      setProcessingId(null);
+      window.alert("No se pudo iniciar la compra");
+    }
   }
-}
-
 
   function abrirModalSuscripcion() {
     setModalOpen(true);
@@ -174,19 +229,62 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
   }
 
   async function confirmarSuscripcion() {
-    // bloqueo simple: botón se deshabilita por estado interno
-    try {
-      // En producción: await fetch('/api/suscripcion', { method:'POST' ... })
-      // Simular procesamiento
-      await new Promise((r) => setTimeout(r, 900));
-      setUsuario((u) => ({ ...u, suscripcionActiva: true }));
-      cerrarModalSuscripcion();
-      window.alert("Suscripción activada. Ahora tienes preferencia y 10% de descuento.");
-    } catch (err) {
-      console.error("confirmarSuscripcion:", err);
-      window.alert("No se pudo completar la suscripción");
+  try {
+    if (!usuario) {
+      window.alert("Debes iniciar sesión.");
+      return;
     }
+
+    // 1) Si ya tiene suscripción activa → no continuar
+    if (usuario.suscripcionActiva) {
+      window.alert("Ya tienes una suscripción activa.");
+      return;
+    }
+
+    const costoSuscripcion = 49.99;
+
+    // 2) Validar saldo suficiente
+    if (wallet < costoSuscripcion) {
+      window.alert("Saldo insuficiente para comprar la suscripción.");
+      return;
+    }
+
+    // 3) Consumir API
+    const resp = await compraSuscripcionSP(usuario.idusuario, 1, costoSuscripcion);
+
+    if (!resp?.success) {
+      throw new Error(resp?.message || "Error al procesar la suscripción");
+    }
+
+    // 4) Actualizar estado del usuario
+    setUsuario((prev) =>
+      prev
+        ? { ...prev, suscripcionActiva: true, billetera: prev.billetera - costoSuscripcion }
+        : prev
+    );
+
+    // 5) Actualizar estado local de billetera
+    setWallet((prev) => prev - costoSuscripcion);
+
+    // Opcional: actualizar sessionStorage
+    try {
+      const nuevoUsuario = {
+        ...usuario,
+        suscripcionActiva: true,
+        billetera: wallet - costoSuscripcion,
+      };
+      sessionStorage.setItem("usuario", JSON.stringify(nuevoUsuario));
+    } catch {}
+
+    cerrarModalSuscripcion();
+    window.alert("Suscripción activada");
+
+  } catch (err: any) {
+    console.error("confirmarSuscripcion:", err);
+    window.alert(err.message || "No se pudo completar la suscripción");
   }
+}
+
 
   /* ----- Render ----- */
   return (
@@ -200,13 +298,15 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
         <div className="userArea">
           <div className="userCard">
             <div className="small">Usuario</div>
-            <div className="userName">{usuario.nombreUser}</div>
-            <div className="badge">{usuario.suscripcionActiva ? "Preferente" : "Sin suscripción"}</div>
+            {/* uso seguro de nombre y fallback */}
+            <div className="userName">{usuario?.nombre ?? "Invitado"}</div>
+            <div className="badge">{usuario?.suscripcionActiva ? "Preferente" : "Sin suscripción"}</div>
           </div>
 
           <div className="walletCard">
             <div className="small">Billetera</div>
-            <div className="walletAmount">Bs {wallet.saldoActual.toFixed(2)}</div>
+            {/* muestra wallet local (estado) y fallback 0 */}
+            <div className="walletAmount">Bs {wallet.toFixed(2)}</div>
           </div>
 
           <button onClick={abrirModalSuscripcion} className="subButton">Comprar suscripción</button>
@@ -222,7 +322,6 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
               <div className="benefitTitle"><strong>Beneficios suscripción</strong></div>
               <ul>
                 <li>Prioridad en listados</li>
-                <li>10% de descuento en compras</li>
                 <li>Acceso a ofertas exclusivas</li>
               </ul>
             </div>
@@ -231,9 +330,8 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
           <div className="content">
             {publicacionesOrdenadas().map((p) => {
               const imp = calcularImpacto(p);
-              const descuento = usuario.suscripcionActiva ? 0.1 : 0;
-              const precio = Number((p.valorCredito * (1 - descuento)).toFixed(2));
-              const isPreferente = usuario.suscripcionActiva && p.idpublicacion % 2 === 1;
+              const precio = Number((p.valorCredito).toFixed(2));
+              const isPreferente = Boolean(usuario?.suscripcionActiva && p.idpublicacion % 2 === 1);
 
               return (
                 <article className="card" key={p.idpublicacion}>
@@ -258,7 +356,9 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
 
                       <div className="priceCol">
                         <div className="small">Valor (Bs)</div>
-                        <div className="price">Bs {precio.toFixed(2)} {descuento > 0 && <span className="subNote">(10% sus.)</span>}</div>
+                        <div className="price">
+                          Bs {precio.toFixed(2)}
+                        </div>
                       </div>
                     </div>
 
@@ -285,7 +385,7 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
         <div className="modalBackdrop">
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <h3 id="modalTitle">Comprar suscripción</h3>
-            <p className="text">Suscripción mensual: Bs 49.99 — otorga preferencia y 10% de descuento.</p>
+            <p className="text">Suscripción mensual: Bs 49.99.</p>
 
             <div className="modalActions">
               <div>
@@ -296,8 +396,6 @@ async function iniciarCompraMarketplace(pub: Publicacion) {
                 <button
                   className="buyBtn"
                   onClick={async () => {
-                    // deshabilitar el botón mediante estado local temporal
-                    // si necesitas bloqueo más fino, añade otro estado
                     await confirmarSuscripcion();
                   }}
                 >
