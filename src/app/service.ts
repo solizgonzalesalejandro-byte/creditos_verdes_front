@@ -419,3 +419,72 @@ export async function getPerfilConsolidado(idusuario: number) {
 
   return resp.json(); // -> { success: true, data: { ...perfil } }
 }
+
+/**
+ * GET /resumen/ganancias?fechaIni=YYYY-MM-DD&fechaFin=YYYY-MM-DD
+ * Retorna: { success: true, data: { global, desglose, topCompradores } }
+ */
+export async function getResumenGanancias(fechaIni: string, fechaFin: string) {
+  if (!fechaIni || !fechaFin) throw new Error("fechaIni y fechaFin son requeridos (YYYY-MM-DD)");
+  const params = new URLSearchParams({ fechaIni, fechaFin });
+  const resp = await fetch(`${BASE_URL}/resumen/ganancias?${params.toString()}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  return resp.json();
+}
+
+/**
+ * POST /sp/compra-creditos
+ * Body: { usuarioId, montoBs, creditos, metodo? }
+ * Retorna: { success: true, data: { success: boolean, idcompra: number | null } }
+ */
+export async function ejecutarCompraCreditosSP(
+  usuarioId: number,
+  montoBs: number,
+  creditos: number,
+  metodo: string = "tarjeta"
+) {
+  // Validación más robusta
+  if (
+    !Number.isFinite(usuarioId) ||
+    !Number.isFinite(montoBs) ||
+    !Number.isFinite(creditos)
+  ) {
+    throw new Error("usuarioId, montoBs y creditos deben ser numéricos válidos");
+  }
+
+  const body = { usuarioId, montoBs, creditos, metodo };
+
+  const resp = await fetch(`${BASE_URL}/sp/compra-creditos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  return resp.json();
+}
+
+
+/**
+ * POST /sp/confirmar-compra
+ * Body: { idcomp, montoBs, metodo? }
+ * Retorna: { success: true, message: "Compra confirmada" } u objeto de error
+ */
+export async function confirmarCompraCreditosSP(
+  idcomp: number,
+  montoBs: number,
+  metodo: string = "tarjeta"
+) {
+  if (idcomp === undefined || idcomp === null || montoBs === undefined || montoBs === null) {
+    throw new Error("idcomp y montoBs son requeridos");
+  }
+
+  const body = { idcomp, montoBs, metodo };
+  const resp = await fetch(`${BASE_URL}/sp/confirmar-compra`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return resp.json();
+}

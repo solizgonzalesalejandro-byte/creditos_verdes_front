@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import Perfil from "./Perfil";
 import Estadisticas from "./transaccion";
 import CrearPublicacion from "./crea_publi";
-import {  } from "module";
+import  VistaComprarCreditosYSuscripcion  from "./compra_puntos";
 
 type PanelKey = "home" | "publicaciones" | "publicar" | "usuario" | "transacciones";
 
@@ -138,8 +138,7 @@ useEffect(() => {
       <main className="contenido" role="main" aria-live="polite">
         {panel === "home" && (
           <section>
-            <h1>Bienvenido</h1>
-            <p>Selecciona una opción del menú para comenzar.</p>
+            <VistaComprarCreditosYSuscripcion />
           </section>
         )}
 

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import "./comprar_puntosCss.css"; // importa el CSS (ruta relativa según tu proyecto)
-
+import "./comprar_puntosCss.css";
+import {
+  ejecutarCompraCreditosSP,
+  confirmarCompraCreditosSP,
+} from "../service"; // AJUSTA LA RUTA SEGÚN TU PROYECTO
 
 /* ----- Tipos ----- */
 type Tabla = {
@@ -33,8 +36,8 @@ type Usuario = {
 
 /* ----- Component ----- */
 export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
-  // datos demo
-  const [publicaciones] = useState<Publicacion[]>([
+  // demo / estado
+  const [publicaciones, setPublicaciones] = useState<Publicacion[]>([
     {
       idpublicacion: 1,
       titulo: "Reciclaje de plástico — 10kg",
@@ -61,13 +64,17 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
   const [wallet, setWallet] = useState<Wallet>({ saldoActual: 200.0 });
   const [usuario, setUsuario] = useState<Usuario>({ nombreUser: "demo_user", suscripcionActiva: false });
 
-  // Para desactivar el botón de compra mientras procesa
+  // UI state
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
+  // Placeholder: en producción carga desde API
   useEffect(() => {
-    // aquí podrías cargar publicaciones, wallet y usuario desde tu API en producción
+    // Ejemplo:
+    // (async function load(){ const k = await fetch('/api/publicaciones').then(r=>r.json()); setPublicaciones(k); })()
   }, []);
 
+  /* ----- Helpers ----- */
   function calcularImpacto(pub: Publicacion) {
     let co2 = 0;
     let en = 0;
@@ -79,114 +86,109 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
       en += u * (Number(c.tabla?.factorEnergiaKwh ?? 0));
       ag += u * (Number(c.tabla?.factorAguaLitro ?? 0));
     }
-    return { total: co2 + en + ag };
+    return { total: co2 + en + ag, co2, en, ag };
   }
 
   function publicacionesOrdenadas(): Publicacion[] {
     if (!usuario.suscripcionActiva) return publicaciones;
+    // lógica demo: preferir impares
     const preferidas = publicaciones.filter((p) => p.idpublicacion % 2 === 1);
     const resto = publicaciones.filter((p) => p.idpublicacion % 2 === 0);
     return [...preferidas, ...resto];
   }
 
-  async function iniciarCompraMarketplace(pub: Publicacion) {
-    setProcessingId(pub.idpublicacion);
-    try {
-      const base = Number(pub.valorCredito ?? 0);
-      const descuento = usuario.suscripcionActiva ? 0.1 : 0;
-      const montoFinal = Number((base * (1 - descuento)).toFixed(2));
+  /* ----- Acciones ----- */
+async function iniciarCompraMarketplace(pub: Publicacion) {
+  setProcessingId(pub.idpublicacion);
 
-      // En producción:
-      // const resp = await fetch('/api/marketplace/checkout', { method: 'POST', body: JSON.stringify({ publicacionId: pub.idpublicacion, monto: montoFinal }) });
-      // const { checkoutUrl } = await resp.json();
-      // window.location.href = checkoutUrl;
+  try {
+    const base = Number(pub.valorCredito ?? 0);
+    const descuento = usuario.suscripcionActiva ? 0.1 : 0;
+    const montoFinal = Number((base * (1 - descuento)).toFixed(2));
 
-      // Demo: simulación de checkout -> abrir ventana y confirmar (webhook simulado)
-      const fakeUrl = `https://makedpace.example.com/checkout?pub=${pub.idpublicacion}&m=${montoFinal}`;
-      const w = window.open(fakeUrl, "_blank", "noopener,noreferrer");
+    const usuarioIdReal = 1; // ← reemplazar con el id real del usuario autenticado
 
-      // Simular confirmación / webhook del marketplace
-      setTimeout(() => {
-        setWallet((wlt) => ({ ...wlt, saldoActual: Number((wlt.saldoActual + montoFinal).toFixed(2)) }));
-        setProcessingId(null);
-        try {
-          if (w && !w.closed) w.close();
-        } catch {
-          /* ignore */
-        }
-        // notificación simple
-        alert(`Compra exitosa (demo). Monto: Bs ${montoFinal}`);
-      }, 1400);
-    } catch (err) {
-      console.error(err);
-      setProcessingId(null);
-      alert("Error iniciando compra");
+    // 1️⃣ Crear la compra (llama sp_compra_creditos)
+    const respCrear = await ejecutarCompraCreditosSP(
+      usuarioIdReal,
+      montoFinal,
+      1, // créditos comprados (define tu propia regla)
+      "pago_marketplace"
+    );
+
+    if (!respCrear?.success) {
+      throw new Error(respCrear?.message || "Error creando compra.");
     }
+
+    const idcomp = respCrear?.data?.idcompra;
+
+    if (!idcomp) {
+      throw new Error("El SP no devolvió idcompra.");
+    }
+
+    // 2️⃣ Abrir checkout simulado
+    const fakeUrl = `https://market.example/pago?id=${idcomp}&m=${montoFinal}`;
+    const popup = window.open(fakeUrl, "_blank", "noopener,noreferrer");
+
+    // 3️⃣ Simular confirmación del pago (reemplazar luego por webhook real)
+    setTimeout(async () => {
+      try {
+        // 4️⃣ Confirmar compra en el backend (sp_confirmar_compra_creditos)
+        const respConfirm = await confirmarCompraCreditosSP(idcomp, montoFinal, "pago_marketplace");
+
+        if (!respConfirm?.success) {
+          throw new Error(respConfirm?.message || "Error confirmando compra.");
+        }
+
+        // 5️⃣ Actualizar billetera local
+        setWallet((w) => ({
+          ...w,
+          saldoActual: Number((w.saldoActual + montoFinal).toFixed(2)),
+        }));
+
+        window.alert("Compra confirmada y acreditada.");
+
+      } catch (err: any) {
+        console.error("Error confirmando:", err);
+        window.alert("Error confirmando la compra");
+      } finally {
+        setProcessingId(null);
+        try { if (popup && !popup.closed) popup.close(); } catch {}
+      }
+    }, 1500);
+
+  } catch (err: any) {
+    console.error("Error iniciarCompraMarketplace:", err);
+    setProcessingId(null);
+    window.alert("No se pudo iniciar la compra");
   }
+}
+
 
   function abrirModalSuscripcion() {
-    // en React controlaremos modal con estado
-    const backdrop = document.getElementById("modalBackdrop");
-    backdrop?.classList.remove("hidden");
+    setModalOpen(true);
   }
 
   function cerrarModalSuscripcion() {
-    const backdrop = document.getElementById("modalBackdrop");
-    backdrop?.classList.add("hidden");
+    setModalOpen(false);
   }
 
   async function confirmarSuscripcion() {
-    // bloqueo simple del botón:
-    const btn = document.getElementById("confirmSub") as HTMLButtonElement | null;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "Procesando...";
-    }
-
-    // En producción: POST /api/suscripcion (usuario.id)
-    setTimeout(() => {
+    // bloqueo simple: botón se deshabilita por estado interno
+    try {
+      // En producción: await fetch('/api/suscripcion', { method:'POST' ... })
+      // Simular procesamiento
+      await new Promise((r) => setTimeout(r, 900));
       setUsuario((u) => ({ ...u, suscripcionActiva: true }));
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "Comprar suscripción";
-      }
       cerrarModalSuscripcion();
-      alert("Suscripción activada. Ahora tienes preferencia y 10% de descuento.");
-    }, 900);
+      window.alert("Suscripción activada. Ahora tienes preferencia y 10% de descuento.");
+    } catch (err) {
+      console.error("confirmarSuscripcion:", err);
+      window.alert("No se pudo completar la suscripción");
+    }
   }
 
-  // Actualizar DOM local para modal (porque en la plantilla original usamos botones con ids)
-  useEffect(() => {
-    const openBtn = document.getElementById("openSubModal");
-    const closeBtn = document.getElementById("closeModal");
-    const confirmBtn = document.getElementById("confirmSub");
-
-    const openHandler = () => abrirModalSuscripcion();
-    const closeHandler = () => cerrarModalSuscripcion();
-    const confirmHandler = () => void confirmarSuscripcion();
-
-    openBtn?.addEventListener("click", openHandler);
-    closeBtn?.addEventListener("click", closeHandler);
-    confirmBtn?.addEventListener("click", confirmHandler);
-
-    // limpiar
-    return () => {
-      openBtn?.removeEventListener("click", openHandler);
-      closeBtn?.removeEventListener("click", closeHandler);
-      confirmBtn?.removeEventListener("click", confirmHandler);
-    };
-  }, []);
-
-  // Cuando cambia wallet/usuario actualizamos algunos elementos que eran estáticos en el HTML original
-  useEffect(() => {
-    const walletEl = document.getElementById("walletAmount");
-    const userNameEl = document.getElementById("userName");
-    const userBadgeEl = document.getElementById("userBadge");
-    if (walletEl) walletEl.textContent = `Bs ${wallet.saldoActual.toFixed(2)}`;
-    if (userNameEl) userNameEl.textContent = usuario.nombreUser;
-    if (userBadgeEl) userBadgeEl.textContent = usuario.suscripcionActiva ? "Preferente" : "Sin suscripción";
-  }, [wallet, usuario]);
-
+  /* ----- Render ----- */
   return (
     <div className="wrapper">
       <header className="header">
@@ -198,16 +200,16 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
         <div className="userArea">
           <div className="userCard">
             <div className="small">Usuario</div>
-            <div id="userName" className="userName">{usuario.nombreUser}</div>
-            <div id="userBadge" className="badge">{usuario.suscripcionActiva ? "Preferente" : "Sin suscripción"}</div>
+            <div className="userName">{usuario.nombreUser}</div>
+            <div className="badge">{usuario.suscripcionActiva ? "Preferente" : "Sin suscripción"}</div>
           </div>
 
           <div className="walletCard">
             <div className="small">Billetera</div>
-            <div id="walletAmount" className="walletAmount">Bs {wallet.saldoActual.toFixed(2)}</div>
+            <div className="walletAmount">Bs {wallet.saldoActual.toFixed(2)}</div>
           </div>
 
-          <button id="openSubModal" className="subButton">Comprar suscripción</button>
+          <button onClick={abrirModalSuscripcion} className="subButton">Comprar suscripción</button>
         </div>
       </header>
 
@@ -278,25 +280,38 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
         </section>
       </main>
 
-      {/* modal (markup similar al html original) */}
-      <div id="modalBackdrop" className="modalBackdrop hidden">
-        <div className="modal">
-          <h3>Comprar suscripción</h3>
-          <p className="text">Suscripción mensual: Bs 49.99 — otorga preferencia y 10% de descuento.</p>
+      {/* Modal: controlado por estado (accesible y reactivo) */}
+      {modalOpen && (
+        <div className="modalBackdrop">
+          <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <h3 id="modalTitle">Comprar suscripción</h3>
+            <p className="text">Suscripción mensual: Bs 49.99 — otorga preferencia y 10% de descuento.</p>
 
-          <div className="modalActions">
-            <div>
-              <div className="small">Precio</div>
-              <div className="price">Bs 49.99 / mes</div>
+            <div className="modalActions">
+              <div>
+                <div className="small">Precio</div>
+                <div className="price">Bs 49.99 / mes</div>
+              </div>
+              <div>
+                <button
+                  className="buyBtn"
+                  onClick={async () => {
+                    // deshabilitar el botón mediante estado local temporal
+                    // si necesitas bloqueo más fino, añade otro estado
+                    await confirmarSuscripcion();
+                  }}
+                >
+                  Comprar suscripción
+                </button>
+              </div>
             </div>
-            <div>
-              <button id="confirmSub" className="buyBtn">Comprar suscripción</button>
+
+            <div className="modalClose">
+              <button onClick={cerrarModalSuscripcion}>Cancelar</button>
             </div>
           </div>
-
-          <div className="modalClose"><button id="closeModal">Cancelar</button></div>
         </div>
-      </div>
+      )}
 
       <footer className="footer">Preview demo — integra con tus endpoints reales para funcionamiento completo.</footer>
     </div>
