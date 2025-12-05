@@ -149,13 +149,6 @@ useEffect(() => {
           </section>
         )}
 
-        {panel === "publicar" && (
-          <section>
-            <h1>Publicar</h1>
-            <p>Aquí irá el formulario para publicar (pendiente de implementar).</p>
-          </section>
-        )}
-
         {panel === "usuario" && (
           <section>
             <Perfil />
@@ -168,11 +161,6 @@ useEffect(() => {
           </section>
         )}
         {panel === "publicar" && (
-          <section>
-            <CrearPublicacion />
-          </section>
-        )}
-         {panel === "home" && (
           <section>
             <CrearPublicacion />
           </section>
