@@ -140,7 +140,7 @@ export default function Publicacion() {
     try {
       return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
     } catch {
-      return `€${n.toFixed(2)}`;
+      return `CV${n.toFixed(2)}`;
     }
   }
   function relativeDate(dateStr?: string) {

@@ -2,11 +2,12 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Publicacion from "./Publicacion";
+import Publicacion from "./Publicacion";       
 import { useEffect } from "react";
 import Perfil from "./Perfil";
 import Estadisticas from "./transaccion";
 import CrearPublicacion from "./crea_publi";
+import {  } from "module";
 
 type PanelKey = "home" | "publicaciones" | "publicar" | "usuario" | "transacciones";
 
@@ -168,6 +169,11 @@ useEffect(() => {
           </section>
         )}
         {panel === "publicar" && (
+          <section>
+            <CrearPublicacion />
+          </section>
+        )}
+         {panel === "home" && (
           <section>
             <CrearPublicacion />
           </section>
