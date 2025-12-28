@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { getPublicaciones } from "../service";
+import { getPublicaciones, iniciarCompraConCreditoVerde } from "../service";
 
 /**
- * Publicacion component
- * - Usa las mismas clases CSS que tu publicacionCss.css
+ * Publicacion component - con integración de compra (credito verde)
  */
 
 // ---------------------- TIPOS ----------------------
@@ -45,6 +44,8 @@ export default function Publicacion() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [resultsLabel, setResultsLabel] = useState("");
+  const [buyLoading, setBuyLoading] = useState(false);
+  const [buyCantidad, setBuyCantidad] = useState<number>(1);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const lastFocusedBeforeModal = useRef<Element | null>(null);
 
@@ -64,7 +65,6 @@ export default function Publicacion() {
         }
 
         const apiData = res.data as ApiPublicacion[];
-        console.log("Publicaciones API:", apiData);
         // mapear y tipar a Product
         const mapped: Product[] = apiData.map((p) => {
           const priceNum = Number(parseFloat(p.valorCredito ?? "0") || 0);
@@ -79,7 +79,7 @@ export default function Publicacion() {
             id: Number(p.idpublicacion),
             title: String(p.titulo ?? ""),
             price: isNaN(priceNum) ? 0 : priceNum,
-            category: "General", // si tienes categoría en la API, úsala aquí
+            category: "General",
             description: String(p.descripcion ?? ""),
             status: String(p.estadoPublica ?? ""),
             date: dateStr,
@@ -103,7 +103,6 @@ export default function Publicacion() {
   }, []);
 
   // ---------------------- FILTRADO (debounce) ----------------------
-  // runFilter tipado y puro
   function runFilter(currentProducts: Product[], q: string, cat: string, s: string) {
     const text = q.trim().toLowerCase();
     let list = currentProducts.filter((p) => {
@@ -124,7 +123,6 @@ export default function Publicacion() {
     setResultsLabel(`${list.length} resultados`);
   }
 
-  // debounce effect: depende de query, category, sort y products
   useEffect(() => {
     const timer = setTimeout(() => {
       runFilter(products, query, category, sort);
@@ -134,6 +132,7 @@ export default function Publicacion() {
 
   // ---------------------- UTILIDADES / MODAL ----------------------
   function precioACreditos(precio: number) {
+    // regla: 1 unidad -> 2 créditos (según tu ejemplo)
     return Math.round(precio * 2 * 100) / 100;
   }
   function formatPrecio(n: number) {
@@ -159,6 +158,7 @@ export default function Publicacion() {
     lastFocusedBeforeModal.current = document.activeElement;
     setSelected(p);
     setModalOpen(true);
+    setBuyCantidad(1);
     setTimeout(() => {
       (modalRef.current?.querySelector<HTMLElement>("button") || modalRef.current)?.focus();
     }, 0);
@@ -180,11 +180,71 @@ export default function Publicacion() {
     return () => document.removeEventListener("keydown", onKey);
   }, [modalOpen]);
 
-  // categories calculadas desde products
   const categories = useMemo(() => {
     const set = new Set(products.map((p) => p.category || "General"));
     return ["all", ...Array.from(set)];
   }, [products]);
+
+  // ---------------------- COMPRA: integración con el backend ----------------------
+  function getUsuarioIdFromSession(): number | null {
+    try {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem("usuario") : null;
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj || (obj.idusuario === undefined && obj.id === undefined)) return null;
+      // maneja ambos nombres posibles: idusuario o id
+      return Number(obj.idusuario ?? obj.id);
+    } catch (err) {
+      console.warn("No se pudo leer usuario desde sessionStorage", err);
+      return null;
+    }
+  }
+
+  async function handleComprar(cantidad = 1) {
+    if (!selected) {
+      alert("Selecciona un producto antes de comprar.");
+      return;
+    }
+    const compradorId = getUsuarioIdFromSession();
+    if (!compradorId || isNaN(compradorId)) {
+      alert("Usuario no autenticado. Inicia sesión para continuar.");
+      return;
+    }
+    if (cantidad <= 0) {
+      alert("Cantidad inválida. Debe ser al menos 1.");
+      return;
+    }
+
+    try {
+      setBuyLoading(true);
+      // Llamada al endpoint (service) que ya tienes
+      console.log(selected);
+      const resp = await iniciarCompraConCreditoVerde(compradorId, selected.id, cantidad);
+      // resp expected: { success: true, data: { idintercambio: number } } o similar
+      if (!resp) throw new Error("Respuesta inválida del servidor.");
+
+      if (resp.success) {
+        const idintercambio = resp.data?.idintercambio ?? null;
+        if (idintercambio) {
+          alert(`Compra iniciada correctamente. Intercambio ID: ${idintercambio}`);
+          // aquí podrías redirigir o actualizar la UI
+          closeModal();
+        } else {
+          // puede pasar si el SP devolvió NULL
+          alert("La compra fue procesada pero no se recibió id de intercambio. Revisa el backend/LOGS.");
+        }
+      } else {
+        // resp.success === false
+        const msg = resp.message ?? "Error iniciando la compra.";
+        alert(msg);
+      }
+    } catch (err: any) {
+      console.error("Error en iniciarCompraConCreditoVerde:", err);
+      alert("Error comunicándose con el servidor: " + (err?.message ?? String(err)));
+    } finally {
+      setBuyLoading(false);
+    }
+  }
 
   return (
     <section className="publicacion-root" aria-live="polite">
@@ -324,17 +384,30 @@ export default function Publicacion() {
               )}
             </div>
 
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: 13, marginRight: 8 }}>Cantidad:</label>
+              <input
+                type="number"
+                min={1}
+                value={buyCantidad}
+                onChange={(e) => setBuyCantidad(Math.max(1, Number(e.target.value || 1)))}
+                style={{ width: 72 }}
+                aria-label="Cantidad a comprar"
+              />
+            </div>
+
             <div className="modal-actions">
               <button
                 id="btnComprar"
                 className="btn-primary"
-                onClick={() => {
-                  alert("Interés registrado (simulado). Gracias por apoyar la economía circular ♻️");
-                }}
+                onClick={() => handleComprar(buyCantidad)}
+                disabled={buyLoading}
+                aria-busy={buyLoading}
               >
-                Comprar / Interesado
+                {buyLoading ? "Procesando..." : "Comprar / Interesado"}
               </button>
-              <button id="btnCerrar" className="btn-outline" onClick={closeModal}>
+
+              <button id="btnCerrar" className="btn-outline" onClick={closeModal} disabled={buyLoading}>
                 Cerrar
               </button>
             </div>

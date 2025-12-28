@@ -88,9 +88,10 @@ export async function publicarConImpacto(
   titulo: string,
   descripcion: string,
   valorCredito: number,
-  cantidadUnidad: number
+  cantidadUnidad: number,
+  foto:string
 ) {
-  const data = { usuarioId, nombreCategoria, unidadMedida, titulo, descripcion, valorCredito, cantidadUnidad };
+  const data = { usuarioId, nombreCategoria, unidadMedida, titulo, descripcion, valorCredito, cantidadUnidad, foto };
 
   const resp = await fetch(`${BASE_URL}/publicacion/con-impacto`, {
     method: "POST",
@@ -619,4 +620,10 @@ export async function getPlataformaIngresos() {
     throw new Error(data?.message ?? "Error obteniendo ingresos de la plataforma");
   }
   return data; // { success: true, data: rows, count }
+}
+
+export async function getTotal() {
+  const url = `${BASE_URL}/total`;
+  const resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+  return resp.json(); // { success: true, data: rows, count }
 }

@@ -161,7 +161,8 @@ export default function CrearPublicacion() {
         title.trim(),
         description.trim(),
         precioN,
-        cantidadN
+        cantidadN,
+        fotoUrl
       );
 
       // Manejo respuesta: tu service devuelve { idpublicacion: ... } dentro de data o directamente
@@ -175,7 +176,7 @@ export default function CrearPublicacion() {
       }
 
       // Si hay foto válida distinta al placeholder, actualizamos la publicación con foto usando PUT /publicacion
-      if (fotoUrl && fotoUrl !== placeholderImage) {
+      /*if (fotoUrl && fotoUrl !== placeholderImage) {
         try {
           await modificarPublicacion({ idpublicacion: Number(idpublicacion), foto: fotoUrl });
         } catch (errMod: any) {
@@ -187,7 +188,7 @@ export default function CrearPublicacion() {
           if (filePreview) { URL.revokeObjectURL(filePreview); setFilePreview(null); }
           return;
         }
-      }
+      }*/
 
       // éxito completo
       setMsg({ text: `✅ Publicación creada correctamente (id: ${idpublicacion}).`, type: "success", visible: true, loading: false });

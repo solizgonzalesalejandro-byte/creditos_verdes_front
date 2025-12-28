@@ -9,6 +9,7 @@ import {
   obtenerVistasSP,
   getPublicaciones,
   getPlataformaIngresos,
+  getTotal
 } from "../service"; // <-- IMPORT CORRECTO
 
 export default function Estadisticas() {
@@ -44,10 +45,10 @@ export default function Estadisticas() {
         const impacto = await obtenerImpactoSemanaSP();
         const rowsImpacto = (impacto.data || []).map((r: any) => ({
           ...r,
-          co2: Number(r.co2),
-          energia: Number(r.energia),
-          agua: Number(r.agua),
-          impactoTotal: Number(r.co2) + Number(r.energia) + Number(r.agua),
+          co2: Number(r.CO2),
+          energia: Number(r.Energia),
+          agua: Number(r.Agua),
+          impactoTotal: Number(r.CO2) + Number(r.Energia) + Number(r.Agua),
         }));
         setImpactoSemana(rowsImpacto);
 
@@ -61,8 +62,12 @@ export default function Estadisticas() {
           ventas: Number(r.ventas),
           bs_liberados: Number(r.bs_liberados),
         }));
+
         setRankingUsuarios(rowsRanking);
-        setKpiVentas(rowsRanking.reduce((acc: number, r: any) => acc + (r.ventas || 0), 0));
+
+        const ventas =await getTotal();
+        console.log(ventas);
+        setKpiVentas(ventas.data[0].cantidad_ventas || 0);
 
         /* ---------------- TOP 10 RANKING ---------------- */
         const top10resp = await obtenerTop10RankingSP();
