@@ -27,8 +27,8 @@ useEffect(() => {
     const storedUser = sessionStorage.getItem("usuario");
     if(storedUser==null){setUsuario("Error Papu");return;}
     const userObj = JSON.parse(storedUser);
-    setUsuario(`${userObj.nombreUser}   `);
-    setPuntos(100)
+    setUsuario(`${userObj.nombre}   `);
+    setPuntos(userObj.billetera)
 }, []);
   // Maneja cambiar panel (centraliza lógica: cerrar menú móvil, analytics, etc.)
   const handleShowPanel = (p: PanelKey) => {
@@ -138,14 +138,14 @@ useEffect(() => {
       <main className="contenido" role="main" aria-live="polite">
         {panel === "home" && (
           <section>
-            <VistaComprarCreditosYSuscripcion />
+            <VistaComprarCreditosYSuscripcion puntos={puntos} setPuntos={setPuntos} />
           </section>
         )}
 
         {panel === "publicaciones" && (
           <section>
             {/* Componente convertido de tu HTML de publicaciones */}
-            <Publicacion />
+            <Publicacion puntos={puntos} setPuntos={setPuntos} />
           </section>
         )}
 

@@ -39,9 +39,13 @@ type Usuario = {
   billetera: number;
   suscripcionActiva: boolean;
 };
+type Props = {
+  puntos: number;
+  setPuntos: React.Dispatch<React.SetStateAction<number>>;
+};
 
 /* ----- Component ----- */
-export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
+export default function VistaComprarCreditosYSuscripcion({ puntos, setPuntos }: Props): JSX.Element {
   // demo / estado
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([
     {
@@ -203,6 +207,7 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
           // 5️⃣ Actualizar billetera local de forma inmutable
           const nuevaBilletera = (usuario.billetera ?? 0) + montoFinal;
           setWallet(nuevaBilletera);
+          setPuntos(nuevaBilletera);
           setUsuario((prev) => (prev ? { ...prev, billetera: nuevaBilletera } : prev));
 
           window.alert("Compra confirmada y acreditada.");
@@ -265,7 +270,7 @@ export default function VistaComprarCreditosYSuscripcion(): JSX.Element {
 
     // 5) Actualizar estado local de billetera
     setWallet((prev) => prev - costoSuscripcion);
-
+    setPuntos(wallet);
     // Opcional: actualizar sessionStorage
     try {
       const nuevoUsuario = {

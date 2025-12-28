@@ -627,3 +627,9 @@ export async function getTotal() {
   const resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
   return resp.json(); // { success: true, data: rows, count }
 }
+
+export async function getCategorias() {
+  const url = `${BASE_URL}/categorias`;
+  const resp = await fetch(url, { method: "GET", headers: { "Content-Type": "application/json" } });
+  return resp.json(); // { success: true, data: rows, count }
+}

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import "./crea_publiCss.css";
-import { publicarConImpacto, modificarPublicacion } from "../service"; // ajusta ruta si hace falta
+import { publicarConImpacto, modificarPublicacion,getCategorias } from "../service"; // ajusta ruta si hace falta
 
 // --- CONFIGURA ESTO ---
 // Usa tus credenciales/constantes Cloudinary (o las que usas en RegistroImagen.tsx)
@@ -11,6 +11,15 @@ const UPLOAD_PRESET = "servineo_unsigned"; // <--- reemplaza si hace falta
 
 export default function CrearPublicacion() {
   const placeholderImage = "https://via.placeholder.com/900x600?text=Sin+imagen";
+
+  type Categoria = {
+  idcatalogo: number;
+  nombreCategoria: string;
+  tipoCategoria: string;
+};
+
+const [categorias, setCategorias] = useState<Categoria[]>([]);
+const [loadingCategorias, setLoadingCategorias] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -34,6 +43,28 @@ export default function CrearPublicacion() {
     : "Descripción breve mostrada aquí.";
   const previewMeta = `${price ? "€" + (isNaN(Number(price)) ? "0.00" : parseFloat(price).toFixed(2)) : "€0.00"} · ${category || "Categoría"}`;
   const previewImage = filePreview || imageUrl.trim() || placeholderImage;
+useEffect(() => {
+  const cargarCategorias = async () => {
+    try {
+      setLoadingCategorias(true);
+      const resp = await getCategorias();
+
+      if (resp?.success && Array.isArray(resp.data)) {
+        setCategorias(resp.data);
+      } else {
+        console.error("Formato inválido de categorías:", resp);
+        setCategorias([]);
+      }
+    } catch (error) {
+      console.error("Error al cargar categorías:", error);
+      setCategorias([]);
+    } finally {
+      setLoadingCategorias(false);
+    }
+  };
+
+  cargarCategorias();
+}, []);
 
   useEffect(() => {
     let t: any;
@@ -254,22 +285,24 @@ export default function CrearPublicacion() {
             <div className="form-group col">
               <label htmlFor="postCategory">Categoría *</label>
               <select
-                id="postCategory"
-                name="category"
-                required
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                <option value="" disabled>
-                  Selecciona una categoría
-                </option>
-                <option value="Ropa">Ropa</option>
-                <option value="Tecnología">Tecnología</option>
-                <option value="Educación">Educación</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Hogar">Hogar</option>
-                <option value="Servicios">Servicios</option>
-              </select>
+  id="postCategory"
+  name="category"
+  required
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+  disabled={loadingCategorias}
+>
+  <option value="">
+    {loadingCategorias ? "Cargando categorías..." : "Selecciona una categoría"}
+  </option>
+
+  {categorias.map((cat) => (
+    <option key={cat.idcatalogo} value={cat.nombreCategoria}>
+      {cat.nombreCategoria}
+    </option>
+  ))}
+</select>
+
             </div>
           </div>
 

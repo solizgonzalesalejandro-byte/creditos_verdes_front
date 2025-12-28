@@ -214,7 +214,7 @@ export default function Estadisticas() {
         </div>
 
         <div className="kpi">
-          <div className="kpi__title">Ventas totales</div>
+          <div className="kpi__title">Ventas totales publicaciones</div>
           <div className="kpi__value">{kpiVentas}</div>
           <div className="kpi__meta">ventas semana (completadas)</div>
         </div>

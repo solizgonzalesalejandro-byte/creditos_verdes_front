@@ -33,9 +33,14 @@ type Product = {
   image?: string | null;
 };
 
+type Props = {
+  puntos: number;
+  setPuntos: React.Dispatch<React.SetStateAction<number>>;
+};
+
 const placeholderImage = "/image/placeholder.png";
 
-export default function Publicacion() {
+export default function Publicacion({ puntos, setPuntos }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
@@ -66,26 +71,29 @@ export default function Publicacion() {
 
         const apiData = res.data as ApiPublicacion[];
         // mapear y tipar a Product
-        const mapped: Product[] = apiData.map((p) => {
-          const priceNum = Number(parseFloat(p.valorCredito ?? "0") || 0);
-          let dateStr = "";
-          try {
-            dateStr = p.fechaPublicacion ? new Date(p.fechaPublicacion).toISOString().slice(0, 10) : "";
-          } catch {
-            dateStr = "";
-          }
+        const mapped: Product[] = apiData
+  .filter((p) => String(p.estadoPublica ?? "").toLowerCase() === "activa") // solo activos
+  .map((p) => {
+    const priceNum = Number(parseFloat(p.valorCredito ?? "0") || 0);
+    let dateStr = "";
+    try {
+      dateStr = p.fechaPublicacion ? new Date(p.fechaPublicacion).toISOString().slice(0, 10) : "";
+    } catch {
+      dateStr = "";
+    }
 
-          return {
-            id: Number(p.idpublicacion),
-            title: String(p.titulo ?? ""),
-            price: isNaN(priceNum) ? 0 : priceNum,
-            category: "General",
-            description: String(p.descripcion ?? ""),
-            status: String(p.estadoPublica ?? ""),
-            date: dateStr,
-            image: p.foto ?? placeholderImage
-          };
-        });
+    return {
+      id: Number(p.idpublicacion),
+      title: String(p.titulo ?? ""),
+      price: isNaN(priceNum) ? 0 : priceNum,
+      category: "General",
+      description: String(p.descripcion ?? ""),
+      status: String(p.estadoPublica ?? ""),
+      date: dateStr,
+      image: p.foto ?? placeholderImage
+    };
+  });
+
 
         setProducts(mapped);
         setFiltered(mapped);
@@ -220,6 +228,7 @@ export default function Publicacion() {
       // Llamada al endpoint (service) que ya tienes
       console.log(selected);
       const resp = await iniciarCompraConCreditoVerde(compradorId, selected.id, cantidad);
+      console.log(resp)
       // resp expected: { success: true, data: { idintercambio: number } } o similar
       if (!resp) throw new Error("Respuesta inválida del servidor.");
 
@@ -228,7 +237,14 @@ export default function Publicacion() {
         if (idintercambio) {
           alert(`Compra iniciada correctamente. Intercambio ID: ${idintercambio}`);
           // aquí podrías redirigir o actualizar la UI
-          closeModal();
+  setProducts((prev) => prev.filter((p) => p.id !== selected.id));
+  setFiltered((prev) => prev.filter((p) => p.id !== selected.id));
+  const nuevaBilletera = puntos - (selected.price); // según tu lógica
+setPuntos(nuevaBilletera);
+
+  closeModal();
+
+
         } else {
           // puede pasar si el SP devolvió NULL
           alert("La compra fue procesada pero no se recibió id de intercambio. Revisa el backend/LOGS.");
